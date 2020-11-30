@@ -1,0 +1,65 @@
+use crate::Operation::{Get, Head, Delete, Post};
+
+pub type Path = Vec<String>;
+
+#[derive(Debug)]
+pub enum Operation {
+    Get,
+    Head,
+    Delete,
+    Post,
+}
+
+#[derive(Debug)]
+pub struct Action {
+    op: Operation,
+    path: Path,
+}
+
+pub fn get_operation(input: &str) -> Result<Action, String> {
+    const OP: usize = 0;
+    const PATH: usize = 1;
+    const PROTO: usize = 2;
+    let mut op = None;
+    let mut path = Vec::new();
+    for fragment in input.split_whitespace().enumerate() {
+        match fragment.0 {
+            OP => {
+                op = match fragment.1 {
+                    "GET" => Some(Get),
+                    "HEAD" => Some(Head),
+                    "DELETE" => Some(Delete),
+                    "POST" => Some(Post),
+                    _ => None
+                };
+            },
+            PATH => {
+                path = fragment.1.split('/').map(String::from).collect();
+            },
+            PROTO => match fragment.1 {
+                "HTTP/1.1" => (),
+                "HTTP/2" => (),
+                _ => return Err("invalid protocol".to_string())
+            },
+            _ => {
+                return Err("ill-formed query: too many arguments".to_string());
+            }
+        }
+    }
+
+    match op {
+        None => Err("invalid operation".to_string()),
+        Some(op) => Ok(Action{op, path})
+    }
+
+}
+
+#[test]
+fn test1() {
+    assert!(get_operation("GET /foo/bar/baz HTTP/1.1").is_ok());
+    assert!(get_operation("HEAD /foo/bar/baz HTTP/1.1").is_ok());
+    assert!(get_operation("POST /foo/bar/baz HTTP/1.1").is_ok());
+    assert!(get_operation("DELETE /foo/bar/baz HTTP/1.1").is_ok());
+    assert!(get_operation("ERROR wrong HTTP").is_err());
+    assert!(get_operation("GET /foo/bar/baz HTTP/1.1 boo").is_err());
+}
