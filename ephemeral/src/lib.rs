@@ -1,3 +1,6 @@
+#![deny(warnings)]
+#![allow(clippy::type_complexity)]
+
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::Rc;
@@ -9,7 +12,13 @@ use std::rc::Rc;
 /// to all branches at the position.
 pub struct PathTree<K, V> {
     leaf: Option<Rc<V>>,
-    branches: HashMap<Rc<K>, Box<PathTree<K, V>>>,
+    branches: HashMap<Rc<K>, PathTree<K, V>>,
+}
+
+impl<K,V> Default for PathTree<K,V> where K: Eq+Hash {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<K, V> PathTree<K, V>
@@ -25,7 +34,7 @@ where
     }
 
     /// Gets an immutable reference to a position at a given path
-    pub fn get_ref(&self, path: &Vec<Rc<K>>) -> Option<&PathTree<K, V>> {
+    pub fn get_ref(&self, path: &[Rc<K>]) -> Option<&PathTree<K, V>> {
         let mut iteratee = self;
         for fragment in path {
             match iteratee.branches.get(fragment) {
@@ -39,7 +48,7 @@ where
     }
 
     /// Gets a reference to a value at given path
-    pub fn get(&self, path: &Vec<Rc<K>>) -> Option<Rc<V>> where V: Clone {
+    pub fn get(&self, path: &[Rc<K>]) -> Option<Rc<V>> where V: Clone {
         match self.get_ref(path) {
             None => None,
             Some(node) => node.leaf.clone(),
@@ -47,20 +56,20 @@ where
     }
 
     // Utility function used by get_all
-    fn get_leaves(&self, path: &Vec<Rc<K>>) -> Vec<(Vec<Rc<K>>, Option<Rc<V>>)> {
+    fn get_leaves(&self, path: &[Rc<K>]) -> Vec<(Vec<Rc<K>>, Option<Rc<V>>)> {
         let mut leaves = Vec::new();
-        leaves.push((path.clone(), self.leaf.clone()));
+        leaves.push((path.to_vec(), self.leaf.clone()));
         for branch in self.branches.iter() {
-            let mut branch_path = path.clone();
+            let mut branch_path = path.to_vec();
             branch_path.push(branch.0.clone());
-            leaves.append(&mut branch.1.get_leaves(&branch_path).clone());
+            leaves.append(&mut branch.1.get_leaves(&branch_path[..]).to_vec());
         }
         leaves
     }
 
     /// Gets all values in the branches at the path including the position
     /// at the path itself.
-    pub fn get_all(&self, path: &Vec<Rc<K>>) -> Vec<(Vec<Rc<K>>, Option<Rc<V>>)> {
+    pub fn get_all(&self, path: &[Rc<K>]) -> Vec<(Vec<Rc<K>>, Option<Rc<V>>)> {
         match self.get_ref(path) {
             None => Vec::new(),
             Some(node) => node.get_leaves(path),
@@ -78,33 +87,33 @@ where
 
     /// Gets an immutable reference to a branch at the position identified by
     /// a path fragment
-    pub fn get_branch(&self, branch_name: Rc<K>) -> Option<&Box<PathTree<K, V>>> {
+    pub fn get_branch(&self, branch_name: Rc<K>) -> Option<&PathTree<K, V>> {
         self.branches.get(&branch_name)
     }
 
     /// Gets a mutable reference to a branch at the position identified by
     /// a path fragment.
-    pub fn get_branch_mut(&mut self, branch_name: Rc<K>) -> Option<&mut Box<PathTree<K, V>>> {
+    pub fn get_branch_mut(&mut self, branch_name: Rc<K>) -> Option<&mut PathTree<K, V>> {
         self.branches.get_mut(&branch_name)
     }
 
     /// Inserts a value at a given path. If a value already exists
     /// at the position it is returned and replaced by the new value.
-    pub fn insert(&mut self, path: &Vec<Rc<K>>, value: Rc<V>) -> Option<Rc<V>> {
+    pub fn insert(&mut self, path: &[Rc<K>], value: Rc<V>) -> Option<Rc<V>> {
         let mut iteratee = self;
         for fragment in path {
             iteratee = iteratee
                 .branches
                 .entry(fragment.clone())
-                .or_insert(Box::new(PathTree::new()));
+                .or_insert_with(PathTree::new);
         }
         let old_value = iteratee.leaf.clone();
-        iteratee.leaf = Some(value.clone());
+        iteratee.leaf = Some(value);
         old_value
     }
 
     /// Clears a value at a given path if a position exists at the path
-    pub fn clear(&mut self, path: &Vec<Rc<K>>) {
+    pub fn clear(&mut self, path: &[Rc<K>]) {
         let mut iteratee = self;
         for fragment in path {
             match iteratee.branches.get_mut(fragment) {
@@ -138,27 +147,27 @@ mod tests {
         let n33 = Rc::new(33);
         
 
-        let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone()], &n42);
+        let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone()], n42.clone());
         assert_eq!(result, None);
         let result = puu.get(&vec![eka_2.clone(), toka.clone(), vika.clone()]);
         assert_eq!(result.unwrap(), n42);
-        let result = puu.insert(&vec![eka_3.clone(), toka.clone(), vika.clone()], &n13);
+        let result = puu.insert(&vec![eka_3.clone(), toka.clone(), vika.clone()], n13.clone());
         assert_eq!(result.unwrap(), n42);
         let result = puu.get(&vec![eka.clone(), toka.clone(), vika.clone()]);
         assert_eq!(result.unwrap(), n13);
-        let result = puu.insert(&vec![eka_2.clone(), kolmas.clone()], &n12);
+        let result = puu.insert(&vec![eka_2.clone(), kolmas.clone()], n12.clone());
         assert_eq!(result, None);
         let result = puu.get(&vec![eka_3.clone(), kolmas.clone()]);
         assert_eq!(result.unwrap(), n12);
-        let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()], &n33);
+        let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()], n33.clone());
         assert_eq!(result, None);
         let result = puu.get(&vec![eka_2.clone(), toka.clone(), vika.clone(), taas.clone()]);
-        assert_eq!(result.unwrap(), n33);
+        assert_eq!(result.unwrap(), n33.clone());
 
         assert_eq!(puu.get_all(&Vec::new()).len(), 6);
         assert_eq!(
             puu.get_all(&vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()]),
-            [(vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()], Some(n33))].to_vec()
+            [(vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()], Some(n33.clone()))].to_vec()
         );
     }
 }

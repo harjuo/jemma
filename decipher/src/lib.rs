@@ -1,3 +1,4 @@
+#![deny(warnings)]
 use crate::Operation::{Delete, Get, Head, Post};
 use std::rc::Rc;
 

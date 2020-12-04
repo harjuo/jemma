@@ -1,41 +1,38 @@
-use decipher::{get_operation};
+#![deny(warnings)]
+use decipher::get_operation;
 use decipher::ActionResult;
-use decipher::Operation::{Get, Post, Delete};
+use decipher::Operation::{Delete, Get, Post};
 use ephemeral::PathTree;
 use std::rc::Rc;
 
 struct Storage {
-    storage: PathTree<String,bool>
+    storage: PathTree<String, bool>,
 }
 
-impl Storage where {
+impl Storage {
     fn new() -> Storage {
-        Storage { storage: PathTree::new() }
+        Storage {
+            storage: PathTree::new(),
+        }
     }
 
     fn act(&mut self, op: ActionResult) {
         match op {
-            Ok(action) => {
-                match action.op {
-                    Get => {
-                        let result = self.storage.get(&action.path);
-                        println!("{:?}: {:?}", action.path, result);
-                    }
-                    Post => {
-                        self.storage.insert(&action.path, Rc::new(true));
-                    }
-                    Delete => {
-                        self.storage.clear(&action.path)
-                    }
-                    _ => ()
+            Ok(action) => match action.op {
+                Get => {
+                    let result = self.storage.get(&action.path);
+                    println!("{:?}: {:?}", action.path, result);
                 }
-            }
-            Err(e) => println!("{}", e)
+                Post => {
+                    self.storage.insert(&action.path, Rc::new(true));
+                }
+                Delete => self.storage.clear(&action.path),
+                _ => (),
+            },
+            Err(e) => println!("{}", e),
         }
     }
 }
-
-
 
 fn main() {
     let mut storage = Storage::new();
