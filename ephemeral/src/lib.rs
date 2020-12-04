@@ -37,19 +37,21 @@ impl<K,V> PathTree<K,V>
         }
     }
 
-    fn get_leaves(&self) -> Vec<Option<V>> where K: Copy, V: Copy {
+    fn get_leaves(&self, path: &Vec<K>) -> Vec<(Vec<K>,Option<V>)> where K: Copy, V: Copy {
         let mut leaves = Vec::new();
-        leaves.push(self.leaf);
+        leaves.push((path.clone(), self.leaf));
         for branch in self.branches.iter() {
-            leaves.append(&mut branch.1.get_leaves());
+            let mut branch_path = path.clone();
+            branch_path.push(*branch.0);
+            leaves.append(&mut branch.1.get_leaves(&branch_path));
         }
         leaves
     }
 
-    pub fn get_all(&self, path: &Vec<K>) -> Vec<Option<V>> {
+    pub fn get_all(&self, path: &Vec<K>) -> Vec<(Vec<K>,Option<V>)> {
         match self.get_ref(path) {
             None => Vec::new(),
-            Some(node) => node.get_leaves(),
+            Some(node) => node.get_leaves(path),
         }
     }
 
@@ -103,5 +105,12 @@ mod tests {
         assert_eq!(result, None);
         let result = puu.get(&vec!["eka", "toka", "vika", "taas"]);
         assert_eq!(result.unwrap(), 33);
+
+        assert_eq!(puu.get_all(&Vec::new()).len(), 6);
+        assert_eq!(
+            puu.get_all(&vec!["eka", "toka", "vika", "taas"]), 
+                [(vec!["eka", "toka", "vika", "taas"], 
+                    Some(33))].to_vec());
+
     }
 }
