@@ -1,6 +1,8 @@
 use crate::Operation::{Delete, Get, Head, Post};
+use std::rc::Rc;
 
-pub type Path = Vec<String>;
+pub type Path = Vec<Rc<String>>;
+pub type ActionResult = Result<Action, String>;
 
 #[derive(Debug)]
 pub enum Operation {
@@ -12,11 +14,11 @@ pub enum Operation {
 
 #[derive(Debug)]
 pub struct Action {
-    op: Operation,
-    path: Path,
+    pub op: Operation,
+    pub path: Path,
 }
 
-pub fn get_operation(input: &str) -> Result<Action, String> {
+pub fn get_operation(input: &str) -> ActionResult {
     const OP: usize = 0;
     const PATH: usize = 1;
     const PROTO: usize = 2;
@@ -34,7 +36,9 @@ pub fn get_operation(input: &str) -> Result<Action, String> {
                 };
             }
             PATH => {
-                path = fragment.1.split('/').map(String::from).collect();
+                path = fragment.1.split('/').map(|s| {
+                    Rc::new(s.to_string())
+                }).collect();
             }
             PROTO => match fragment.1 {
                 "HTTP/1.1" => (),

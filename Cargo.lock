@@ -5,8 +5,13 @@ name = "decipher"
 version = "0.1.0"
 
 [[package]]
+name = "ephemeral"
+version = "0.1.0"
+
+[[package]]
 name = "jemma"
 version = "0.1.0"
 dependencies = [
  "decipher",
+ "ephemeral",
 ]
