@@ -15,7 +15,10 @@ pub struct PathTree<K, V> {
     branches: HashMap<Rc<K>, PathTree<K, V>>,
 }
 
-impl<K,V> Default for PathTree<K,V> where K: Eq+Hash {
+impl<K, V> Default for PathTree<K, V>
+where
+    K: Eq + Hash,
+{
     fn default() -> Self {
         Self::new()
     }
@@ -48,7 +51,10 @@ where
     }
 
     /// Gets a reference to a value at given path
-    pub fn get(&self, path: &[Rc<K>]) -> Option<Rc<V>> where V: Clone {
+    pub fn get(&self, path: &[Rc<K>]) -> Option<Rc<V>>
+    where
+        V: Clone,
+    {
         match self.get_ref(path) {
             None => None,
             Some(node) => node.leaf.clone(),
@@ -145,13 +151,15 @@ mod tests {
         let n12 = Rc::new(12);
         let n13 = Rc::new(13);
         let n33 = Rc::new(33);
-        
 
         let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone()], n42.clone());
         assert_eq!(result, None);
         let result = puu.get(&vec![eka_2.clone(), toka.clone(), vika.clone()]);
         assert_eq!(result.unwrap(), n42);
-        let result = puu.insert(&vec![eka_3.clone(), toka.clone(), vika.clone()], n13.clone());
+        let result = puu.insert(
+            &vec![eka_3.clone(), toka.clone(), vika.clone()],
+            n13.clone(),
+        );
         assert_eq!(result.unwrap(), n42);
         let result = puu.get(&vec![eka.clone(), toka.clone(), vika.clone()]);
         assert_eq!(result.unwrap(), n13);
@@ -159,15 +167,27 @@ mod tests {
         assert_eq!(result, None);
         let result = puu.get(&vec![eka_3.clone(), kolmas.clone()]);
         assert_eq!(result.unwrap(), n12);
-        let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()], n33.clone());
+        let result = puu.insert(
+            &vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()],
+            n33.clone(),
+        );
         assert_eq!(result, None);
-        let result = puu.get(&vec![eka_2.clone(), toka.clone(), vika.clone(), taas.clone()]);
+        let result = puu.get(&vec![
+            eka_2.clone(),
+            toka.clone(),
+            vika.clone(),
+            taas.clone(),
+        ]);
         assert_eq!(result.unwrap(), n33.clone());
 
         assert_eq!(puu.get_all(&Vec::new()).len(), 6);
         assert_eq!(
             puu.get_all(&vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()]),
-            [(vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()], Some(n33.clone()))].to_vec()
+            [(
+                vec![eka.clone(), toka.clone(), vika.clone(), taas.clone()],
+                Some(n33.clone())
+            )]
+            .to_vec()
         );
     }
 }

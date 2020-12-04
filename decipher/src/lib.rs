@@ -37,9 +37,11 @@ pub fn get_operation(input: &str) -> ActionResult {
                 };
             }
             PATH => {
-                path = fragment.1.split('/').map(|s| {
-                    Rc::new(s.to_string())
-                }).collect();
+                path = fragment
+                    .1
+                    .split('/')
+                    .map(|s| Rc::new(s.to_string()))
+                    .collect();
             }
             PROTO => match fragment.1 {
                 "HTTP/1.1" => (),
