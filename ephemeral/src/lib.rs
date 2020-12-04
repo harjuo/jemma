@@ -17,17 +17,56 @@ impl<K,V> PathTree<K,V>
         }
     }
 
-    pub fn get(&self, path: &Vec<K>) -> &Option<V> {
+    pub fn get_ref(&self, path: &Vec<K>) -> Option<&PathTree<K,V>> {
         let mut iteratee = self;
         for fragment in path {
             match iteratee.branches.get(&fragment) {
-                None => return &None,
+                None => return None,
                 Some(path_tree) => {
                     iteratee = &path_tree;
                 },
             }
         }
-        &iteratee.leaf
+        Some(iteratee)
+    }
+
+    pub fn get(&self, path: &Vec<K>) -> Option<V> {
+        match self.get_ref(path) {
+            None => None,
+            Some(node) => node.leaf,
+        }
+    }
+
+    fn get_leaves(&self) -> Vec<Option<V>> where K: Copy, V: Copy {
+        let mut leaves = Vec::new();
+        leaves.push(self.leaf);
+        for branch in self.branches.iter() {
+            leaves.append(&mut branch.1.get_leaves());
+        }
+        leaves
+    }
+
+    pub fn get_all(&self, path: &Vec<K>) -> Vec<Option<V>> {
+        match self.get_ref(path) {
+            None => Vec::new(),
+            Some(node) => node.get_leaves(),
+        }
+    }
+
+    pub fn list_branches(&self) -> Vec<&K> {
+        let mut branches = Vec::new();
+        for branch in self.branches.iter() {
+            branches.push(branch.0);
+        }
+        branches
+    }
+
+    pub fn get_branch(&self, branch_name: &K) -> Option<&Box<PathTree<K,V>>> {
+        self.branches.get(branch_name)
+    }
+
+    pub fn get_branch_mut(&mut self, branch_name: &K) -> Option<&mut Box<PathTree<K,V>>> {
+        self.branches.get_mut(branch_name)
     }
 
     pub fn insert(&mut self, path: &Vec<K>, value: V) -> Option<V> {
