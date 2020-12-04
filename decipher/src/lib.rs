@@ -1,4 +1,4 @@
-use crate::Operation::{Get, Head, Delete, Post};
+use crate::Operation::{Delete, Get, Head, Post};
 
 pub type Path = Vec<String>;
 
@@ -30,16 +30,16 @@ pub fn get_operation(input: &str) -> Result<Action, String> {
                     "HEAD" => Some(Head),
                     "DELETE" => Some(Delete),
                     "POST" => Some(Post),
-                    _ => None
+                    _ => None,
                 };
-            },
+            }
             PATH => {
                 path = fragment.1.split('/').map(String::from).collect();
-            },
+            }
             PROTO => match fragment.1 {
                 "HTTP/1.1" => (),
                 "HTTP/2" => (),
-                _ => return Err("invalid protocol".to_string())
+                _ => return Err("invalid protocol".to_string()),
             },
             _ => {
                 return Err("ill-formed query: too many arguments".to_string());
@@ -49,9 +49,8 @@ pub fn get_operation(input: &str) -> Result<Action, String> {
 
     match op {
         None => Err("invalid operation".to_string()),
-        Some(op) => Ok(Action{op, path})
+        Some(op) => Ok(Action { op, path }),
     }
-
 }
 
 #[test]
