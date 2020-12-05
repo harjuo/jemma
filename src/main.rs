@@ -34,6 +34,9 @@ impl Storage {
     }
 }
 
+/// Demonstration of HTTP parsing and storage functions.
+/// POST method sets a true value at a path.
+/// GET method displays the value at a path.
 fn main() {
     let mut storage = Storage::new();
     storage.act(get_operation("POST /foo/bar/baz HTTP/1.1"));

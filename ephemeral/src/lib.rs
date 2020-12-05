@@ -1,5 +1,4 @@
 #![deny(warnings)]
-#![allow(clippy::type_complexity)]
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -10,6 +9,7 @@ use std::rc::Rc;
 /// fragments. Multiple values in a PathTree can be retrieved
 /// or deleted by referring to a position and applying an operation
 /// to all branches at the position.
+#[derive(Debug)]
 pub struct PathTree<K, V> {
     leaf: Option<Rc<V>>,
     branches: HashMap<Rc<K>, PathTree<K, V>>,
@@ -23,6 +23,9 @@ where
         Self::new()
     }
 }
+
+type Path<K> = Vec<Rc<K>>;
+type Value<V> = Option<Rc<V>>;
 
 impl<K, V> PathTree<K, V>
 where
@@ -51,7 +54,7 @@ where
     }
 
     /// Gets a reference to a value at given path
-    pub fn get(&self, path: &[Rc<K>]) -> Option<Rc<V>>
+    pub fn get(&self, path: &[Rc<K>]) -> Value<V>
     where
         V: Clone,
     {
@@ -61,8 +64,8 @@ where
         }
     }
 
-    // Utility function used by get_all
-    fn get_leaves(&self, path: &[Rc<K>]) -> Vec<(Vec<Rc<K>>, Option<Rc<V>>)> {
+    // Utility function used by get_all.
+    fn get_leaves(&self, path: &[Rc<K>]) -> Vec<(Path<K>, Value<V>)> {
         let mut leaves = Vec::new();
         leaves.push((path.to_vec(), self.leaf.clone()));
         for branch in self.branches.iter() {
@@ -75,7 +78,7 @@ where
 
     /// Gets all values in the branches at the path including the position
     /// at the path itself.
-    pub fn get_all(&self, path: &[Rc<K>]) -> Vec<(Vec<Rc<K>>, Option<Rc<V>>)> {
+    pub fn get_all(&self, path: &[Rc<K>]) -> Vec<(Path<K>, Value<V>)> {
         match self.get_ref(path) {
             None => Vec::new(),
             Some(node) => node.get_leaves(path),
@@ -83,8 +86,8 @@ where
     }
 
     /// Lists all branches at the position
-    pub fn list_branches(&self) -> Vec<Rc<K>> {
-        let mut branches: Vec<Rc<K>> = Vec::new();
+    pub fn list_branches(&self) -> Path<K> {
+        let mut branches: Path<K> = Vec::new();
         for branch in self.branches.iter() {
             branches.push(branch.0.clone());
         }
@@ -105,7 +108,7 @@ where
 
     /// Inserts a value at a given path. If a value already exists
     /// at the position it is returned and replaced by the new value.
-    pub fn insert(&mut self, path: &[Rc<K>], value: Rc<V>) -> Option<Rc<V>> {
+    pub fn insert(&mut self, path: &[Rc<K>], value: Rc<V>) -> Value<V> {
         let mut iteratee = self;
         for fragment in path {
             iteratee = iteratee
@@ -126,6 +129,24 @@ where
                 None => return,
                 Some(path_tree) => {
                     iteratee = path_tree;
+                }
+            }
+        }
+        iteratee.leaf = None
+    }
+
+    /// Deletes a path including every path under it
+    pub fn delete(&mut self, path: &[Rc<K>]) {
+        let mut iteratee = self;
+        for (index, fragment) in path.iter().enumerate() {
+            if index == path.len()-1 {
+                iteratee.branches.remove(fragment);
+            } else {
+                match iteratee.branches.get_mut(fragment) {
+                    None => return,
+                    Some(path_tree) => {
+                        iteratee = path_tree;
+                    }
                 }
             }
         }
@@ -189,5 +210,10 @@ mod tests {
             )]
             .to_vec()
         );
+
+        puu.delete(&vec![eka.clone(), toka.clone()]);
+        assert_eq!(puu.get_all(&Vec::new()).len(), 3);
+        puu.delete(&vec![eka.clone()]);
+        assert_eq!(puu.get_all(&Vec::new()).len(), 1);
     }
 }

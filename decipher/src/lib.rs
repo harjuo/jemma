@@ -19,6 +19,9 @@ pub struct Action {
     pub path: Path,
 }
 
+/// Parses a GET, HEAD, DELETE or POST HTTP request and returns
+/// the operation and path to the requested resource. The path
+/// is represented by a ordered list of path fragments.
 pub fn get_operation(input: &str) -> ActionResult {
     const OP: usize = 0;
     const PATH: usize = 1;
