@@ -66,8 +66,7 @@ where
 
     // Utility function used by get_all.
     fn get_leaves(&self, path: &[Rc<K>]) -> Vec<(Path<K>, Value<V>)> {
-        let mut leaves = Vec::new();
-        leaves.push((path.to_vec(), self.leaf.clone()));
+        let mut leaves = vec![(path.to_vec(), self.leaf.clone())];
         for branch in self.branches.iter() {
             let mut branch_path = path.to_vec();
             branch_path.push(branch.0.clone());
