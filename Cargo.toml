@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 decipher = { path = "decipher" }
 ephemeral = { path = "ephemeral" }
-futures = "0.3"
+futures = { version="0.3", features = ["thread-pool"] }

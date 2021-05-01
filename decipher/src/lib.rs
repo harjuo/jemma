@@ -1,8 +1,8 @@
 #![deny(warnings)]
 use crate::Operation::{Delete, Get, Head, Post};
-use std::rc::Rc;
+use std::sync::Arc;
 
-pub type Path = Vec<Rc<String>>;
+pub type Path = Vec<Arc<String>>;
 pub type ActionResult = Result<Action, String>;
 
 #[derive(Debug)]
@@ -43,7 +43,7 @@ pub fn get_operation(input: &str) -> ActionResult {
                 path = fragment
                     .1
                     .split('/')
-                    .map(|s| Rc::new(s.to_string()))
+                    .map(|s| Arc::new(s.to_string()))
                     .collect();
             }
             PROTO => match fragment.1 {

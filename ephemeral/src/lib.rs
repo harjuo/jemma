@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// PathTree represents a structure where every value is identified
 /// by a path. The path consists of a vector of elements called
@@ -11,8 +11,8 @@ use std::rc::Rc;
 /// to all branches at the position.
 #[derive(Debug)]
 pub struct PathTree<K, V> {
-    leaf: Option<Rc<V>>,
-    branches: HashMap<Rc<K>, PathTree<K, V>>,
+    leaf: Option<Arc<V>>,
+    branches: HashMap<Arc<K>, PathTree<K, V>>,
 }
 
 impl<K, V> Default for PathTree<K, V>
@@ -24,8 +24,8 @@ where
     }
 }
 
-type Path<K> = Vec<Rc<K>>;
-type Value<V> = Option<Rc<V>>;
+type Path<K> = Vec<Arc<K>>;
+type Value<V> = Option<Arc<V>>;
 
 impl<K, V> PathTree<K, V>
 where
@@ -40,7 +40,7 @@ where
     }
 
     /// Gets an immutable reference to a position at a given path
-    pub fn get_ref(&self, path: &[Rc<K>]) -> Option<&PathTree<K, V>> {
+    pub fn get_ref(&self, path: &[Arc<K>]) -> Option<&PathTree<K, V>> {
         let mut iteratee = self;
         for fragment in path {
             match iteratee.branches.get(fragment) {
@@ -54,7 +54,7 @@ where
     }
 
     /// Gets a reference to a value at given path
-    pub fn get(&self, path: &[Rc<K>]) -> Value<V>
+    pub fn get(&self, path: &[Arc<K>]) -> Value<V>
     where
         V: Clone,
     {
@@ -65,7 +65,7 @@ where
     }
 
     // Utility function used by get_all.
-    fn get_leaves(&self, path: &[Rc<K>]) -> Vec<(Path<K>, Value<V>)> {
+    fn get_leaves(&self, path: &[Arc<K>]) -> Vec<(Path<K>, Value<V>)> {
         let mut leaves = vec![(path.to_vec(), self.leaf.clone())];
         for branch in self.branches.iter() {
             let mut branch_path = path.to_vec();
@@ -77,7 +77,7 @@ where
 
     /// Gets all values in the branches at the path including the position
     /// at the path itself.
-    pub fn get_all(&self, path: &[Rc<K>]) -> Vec<(Path<K>, Value<V>)> {
+    pub fn get_all(&self, path: &[Arc<K>]) -> Vec<(Path<K>, Value<V>)> {
         match self.get_ref(path) {
             None => Vec::new(),
             Some(node) => node.get_leaves(path),
@@ -95,19 +95,19 @@ where
 
     /// Gets an immutable reference to a branch at the position identified by
     /// a path fragment
-    pub fn get_branch(&self, branch_name: Rc<K>) -> Option<&PathTree<K, V>> {
+    pub fn get_branch(&self, branch_name: Arc<K>) -> Option<&PathTree<K, V>> {
         self.branches.get(&branch_name)
     }
 
     /// Gets a mutable reference to a branch at the position identified by
     /// a path fragment.
-    pub fn get_branch_mut(&mut self, branch_name: Rc<K>) -> Option<&mut PathTree<K, V>> {
+    pub fn get_branch_mut(&mut self, branch_name: Arc<K>) -> Option<&mut PathTree<K, V>> {
         self.branches.get_mut(&branch_name)
     }
 
     /// Inserts a value at a given path. If a value already exists
     /// at the position it is returned and replaced by the new value.
-    pub fn insert(&mut self, path: &[Rc<K>], value: Rc<V>) -> Value<V> {
+    pub fn insert(&mut self, path: &[Arc<K>], value: Arc<V>) -> Value<V> {
         let mut iteratee = self;
         for fragment in path {
             iteratee = iteratee
@@ -121,7 +121,7 @@ where
     }
 
     /// Clears a value at a given path if a position exists at the path
-    pub fn clear(&mut self, path: &[Rc<K>]) {
+    pub fn clear(&mut self, path: &[Arc<K>]) {
         let mut iteratee = self;
         for fragment in path {
             match iteratee.branches.get_mut(fragment) {
@@ -135,10 +135,10 @@ where
     }
 
     /// Deletes a path including every path under it
-    pub fn delete(&mut self, path: &[Rc<K>]) {
+    pub fn delete(&mut self, path: &[Arc<K>]) {
         let mut iteratee = self;
         for (index, fragment) in path.iter().enumerate() {
-            if index == path.len()-1 {
+            if index == path.len() - 1 {
                 iteratee.branches.remove(fragment);
             } else {
                 match iteratee.branches.get_mut(fragment) {
@@ -160,17 +160,17 @@ mod tests {
     #[test]
     fn insert_get() {
         let mut puu = PathTree::new();
-        let eka = Rc::new("eka");
-        let eka_2 = Rc::new("eka");
-        let eka_3 = Rc::new("eka");
-        let toka = Rc::new("toka");
-        let vika = Rc::new("vika");
-        let kolmas = Rc::new("kolmas");
-        let taas = Rc::new("taas");
-        let n42 = Rc::new(42);
-        let n12 = Rc::new(12);
-        let n13 = Rc::new(13);
-        let n33 = Rc::new(33);
+        let eka = Arc::new("eka");
+        let eka_2 = Arc::new("eka");
+        let eka_3 = Arc::new("eka");
+        let toka = Arc::new("toka");
+        let vika = Arc::new("vika");
+        let kolmas = Arc::new("kolmas");
+        let taas = Arc::new("taas");
+        let n42 = Arc::new(42);
+        let n12 = Arc::new(12);
+        let n13 = Arc::new(13);
+        let n33 = Arc::new(33);
 
         let result = puu.insert(&vec![eka.clone(), toka.clone(), vika.clone()], n42.clone());
         assert_eq!(result, None);
