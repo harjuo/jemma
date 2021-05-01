@@ -17,6 +17,12 @@ struct Storage {
     storage: PathTree<String, bool>,
 }
 
+#[derive(Debug)]
+enum Error {
+    IoError(std::io::Error),
+    Other,
+}
+
 impl Storage {
     fn new() -> Storage {
         Storage {
@@ -50,16 +56,16 @@ fn handle_client(
     mut stream: TcpStream,
     runner: ThreadPool,
     storage: Arc<RwLock<Storage>>,
-) -> std::io::Result<()> {
+) -> Result<(), Error> {
     const BUF_SIZE: usize = 1280;
     let mut buffa = [0; BUF_SIZE];
-    if stream.read(&mut buffa)? > 0 {
+    if stream.read(&mut buffa).map_err(Error::IoError)? > 0 {
         runner.spawn_ok(do_operation(
             std::str::from_utf8(&buffa)
-                .expect("can't convert to string")
+                .map_err(|_| Error::Other)?
                 .lines()
                 .next()
-                .expect("empty request")
+                .ok_or(Error::Other)?
                 .to_owned(),
             storage,
         ));
@@ -67,18 +73,25 @@ fn handle_client(
     Ok(())
 }
 
-async fn listener(storage: Arc<RwLock<Storage>>) -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:80")?;
+async fn listener(storage: Arc<RwLock<Storage>>) -> Result<(), Error> {
+    let listener = TcpListener::bind("127.0.0.1:80").map_err(Error::IoError)?;
     let runner = ThreadPool::new().expect("failed to create thread pool");
     for request in listener.incoming() {
-        handle_client(request?, runner.clone(), storage.clone())?;
+        handle_client(
+            request.map_err(Error::IoError)?,
+            runner.clone(),
+            storage.clone(),
+        )?;
     }
     Ok(())
 }
 
 fn main() {
     block_on(
-        listener(Arc::new(RwLock::new(Storage::new())))
-            .map(|r| r.expect("could not create connection listener")),
+        listener(Arc::new(RwLock::new(Storage::new()))).map(|result| {
+            if let Err(e) = result {
+                println!("There was failure: {:?}", e);
+            }
+        }),
     );
 }
