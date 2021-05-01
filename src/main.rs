@@ -23,6 +23,8 @@ enum Error {
     Other,
 }
 
+const DEBUG: bool = false;
+
 impl Storage {
     fn new() -> Storage {
         Storage {
@@ -30,26 +32,74 @@ impl Storage {
         }
     }
 
-    fn act(&mut self, op: ActionResult) {
+    fn act(&mut self, op: ActionResult, mut stream: TcpStream) {
+        let stream_error_msg = "cannot write into stream";
         match op {
             Ok(action) => match action.op {
                 Get => {
+                    let true_reply = b"HTTP/1.1 200 OK\n\n1";
+                    let false_reply = b"HTTP/1.1 200 OK\n\n0";
                     let result = self.storage.get(&action.path);
-                    println!("{:?}: {:?}", action.path, result);
+                    let reply = match result.clone() {
+                        Some(val) => {
+                            if *val {
+                                true_reply
+                            } else {
+                                false_reply
+                            }
+                        }
+                        None => false_reply,
+                    };
+                    if DEBUG {
+                        println!("{:?}: {:?}", action.path, result);
+                    }
+                    stream
+                        .write(reply)
+                        .map_err(Error::IoError)
+                        .expect(stream_error_msg);
                 }
                 Post => {
+                    if DEBUG {
+                        println!("{:?} set", action.path);
+                    }
                     self.storage.insert(&action.path, Arc::new(true));
+                    stream
+                        .write(b"HTTP/1.1 200 OK\n")
+                        .map_err(Error::IoError)
+                        .expect(stream_error_msg);
                 }
-                Delete => self.storage.clear(&action.path),
-                _ => (),
+                Delete => {
+                    self.storage.clear(&action.path);
+                    stream
+                        .write(b"HTTP/1.1 200 OK\n")
+                        .map_err(Error::IoError)
+                        .expect(stream_error_msg);
+                }
+                _ => {
+                    stream
+                        .write(b"HTTP/1.1 400 Bad Request\n")
+                        .map_err(Error::IoError)
+                        .expect(stream_error_msg);
+                }
             },
-            Err(e) => println!("{}", e),
+            Err(e) => {
+                if DEBUG {
+                    println!("{}", e);
+                }
+                stream
+                    .write(b"HTTP/1.1 404 Not Found\n")
+                    .map_err(Error::IoError)
+                    .expect(stream_error_msg);
+            }
         }
     }
 }
 
-async fn do_operation(op: String, storage: Arc<RwLock<Storage>>) {
-    (*storage.write().expect("can't get lock")).act(get_operation(&op));
+async fn do_operation(op: String, storage: Arc<RwLock<Storage>>, stream: TcpStream) {
+    if DEBUG {
+        println!("{}", op);
+    }
+    (*storage.write().expect("can't get lock")).act(get_operation(&op), stream);
 }
 
 fn handle_client(
@@ -68,6 +118,7 @@ fn handle_client(
                 .ok_or(Error::Other)?
                 .to_owned(),
             storage,
+            stream,
         ));
     }
     Ok(())
