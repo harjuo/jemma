@@ -1,6 +1,11 @@
 # jemma
 
-Storing and fetching boolean values of hierarchically arranged data in ephemeral storage is jemma's sole purpose.
+Storing hierarchically arranged boolean values in ephemeral storage is jemma's sole purpose. Extending jemma to store more complex data is left as an exercise to the
+reader, however, the types used internally support more complex structures with ease.
+
+# Requirements
+
+Building jemma requires the standard Rust toolchain that is available at https://rustup.rs.
 
 # Usage
 
