@@ -11,11 +11,11 @@ The program will respond to GET, POST and DELETE requests. Data at the path of t
 
 Run `cargo run` in one shell and the following commands in another shell:
 
-    % curl http://localhost/this/is/test
+    % curl http://localhost:8080/this/is/test
     0
-    % curl -X POST http://localhost/this/is/test
-    % curl http://localhost/this/is/test
+    % curl -X POST http://localhost:8080/this/is/test
+    % curl http://localhost:8080/this/is/test
     1
-    % curl -X DELETE http://localhost/this/is/test
-    % curl http://localhost/this/is/test
+    % curl -X DELETE http://localhost:8080/this/is/test
+    % curl http://localhost:8080/this/is/test
     0
