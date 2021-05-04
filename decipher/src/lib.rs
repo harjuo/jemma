@@ -49,7 +49,7 @@ pub fn get_operation(input: &str) -> ActionResult {
             PROTO => match fragment.1 {
                 "HTTP/1.1" => (),
                 "HTTP/2" => (),
-                _ => return Err("invalid protocol".to_string()),
+                _ => return Err("incorrect protocol".to_string()),
             },
             _ => {
                 return Err("ill-formed query: too many arguments".to_string());
@@ -58,7 +58,7 @@ pub fn get_operation(input: &str) -> ActionResult {
     }
 
     match op {
-        None => Err("invalid operation".to_string()),
+        None => Err("incorrect operation".to_string()),
         Some(op) => Ok(Action { op, path }),
     }
 }

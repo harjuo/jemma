@@ -34,7 +34,11 @@ impl Storage {
         }
     }
 
+    // Act on a request and write response to stream.
+    // TODO: maybe abstract out writing the response and remove
+    // direct dependency to TcpStream.
     fn act(&mut self, op: ActionResult, mut stream: TcpStream) {
+        let ok = "HTTP/1.1 200 OK\n";
         let reply = match op {
             Ok(action) => match action.op {
                 Get => {
@@ -49,15 +53,15 @@ impl Storage {
                         }
                         None => "0",
                     };
-                    "HTTP/1.1 200 OK\n\n".to_owned() + get_value
+                    ok.to_owned() + "\n" + get_value
                 }
                 Post => {
                     self.storage.insert(&action.path, Arc::new(true));
-                    "HTTP/1.1 200 OK\n".to_owned()
+                    ok.to_owned()
                 }
                 Delete => {
                     self.storage.clear(&action.path);
-                    "HTTP/1.1 200 OK\n".to_owned()
+                    ok.to_owned()
                 }
                 _ => "HTTP/1.1 400 Bad Request\n".to_owned(),
             },
@@ -73,6 +77,7 @@ async fn do_operation(op: String, storage: Arc<RwLock<Storage>>, stream: TcpStre
     (*storage.write().expect("can't get lock")).act(get_operation(&op), stream);
 }
 
+// Serve a single connection
 fn handle_client(
     mut stream: TcpStream,
     runner: ThreadPool,
@@ -95,6 +100,7 @@ fn handle_client(
     Ok(())
 }
 
+// Serve all incoming connections asynchronously
 async fn listener(storage: Arc<RwLock<Storage>>, port: u16) -> Result<(), Error> {
     let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).map_err(Error::IoError)?;
     let runner = ThreadPool::new().expect("failed to create thread pool");
@@ -116,13 +122,13 @@ fn get_port() -> u16 {
         match args[1].parse::<u64>() {
             Ok(input) => {
                 if input > std::u16::MAX.into() {
-                    println!("invalid port number: {}", input);
+                    println!("incorrect port number: {}", input);
                     std::process::exit(1);
                 }
                 input as u16
             }
             Err(_) => {
-                println!("invalid port: {}", args[1]);
+                println!("incorrect port: {}", args[1]);
                 std::process::exit(1);
             }
         }
@@ -138,7 +144,7 @@ fn main() {
     block_on(
         listener(Arc::new(RwLock::new(Storage::new())), get_port()).map(|result| {
             if let Err(e) = result {
-                println!("There was failure: {:?}", e);
+                println!("there was a failure: {:?}", e);
             }
         }),
     );
