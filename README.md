@@ -1,7 +1,6 @@
 # jemma
 
-Storing hierarchically arranged boolean values in ephemeral storage is jemma's sole purpose. Extending jemma to store more complex data is left as an exercise to the
-reader, however, the types used internally support more complex structures with ease.
+This repository serves mostly as an exercise for the author in Rust's data structures and asynchronous networking programming. There is a very bare-bones HTTP protocol handler that stores and retrieves hierarchically structures data from an ephemeral storage. Currently only boolean values are supported, but extending the code to handle more complex data mainly would require extending the HTTP parser. The ephemeral storage is able to handle keys and values of arbitrary complexity.
 
 # Requirements
 
