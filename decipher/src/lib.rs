@@ -64,11 +64,22 @@ pub fn get_operation(input: &str) -> ActionResult {
 }
 
 #[test]
-fn test1() {
+fn test_correct_requests() {
     assert!(get_operation("GET /foo/bar/baz HTTP/1.1").is_ok());
     assert!(get_operation("HEAD /foo/bar/baz HTTP/1.1").is_ok());
     assert!(get_operation("POST /foo/bar/baz HTTP/1.1").is_ok());
     assert!(get_operation("DELETE /foo/bar/baz HTTP/1.1").is_ok());
+    assert!(get_operation("GET /foo/bar/baz HTTP/1.1\n").is_ok());
+    assert!(get_operation("GET /foo/bar/baz HTTP/1.1\n    ").is_ok());
+}
+
+#[test]
+fn test_incorrect_requests() {
     assert!(get_operation("ERROR wrong HTTP").is_err());
     assert!(get_operation("GET /foo/bar/baz HTTP/1.1 boo").is_err());
+    assert!(get_operation("").is_err());
+    assert!(get_operation("-1").is_err());
+    assert!(get_operation("🙄🙄🙄").is_err());
+    assert!(get_operation("GET /foo/bar/baz HTTP/1.1 GET /foo/bar/baz HTTP/1.1").is_err());
+    assert!(get_operation("GET /foo/bar/baz HTTP/1.1\nheader").is_err());
 }
