@@ -8,6 +8,7 @@ use futures::{
     prelude::*,
 };
 use std::{
+    env,
     io::prelude::*,
     net::{TcpListener, TcpStream},
     sync::{Arc, RwLock},
@@ -23,6 +24,9 @@ enum Error {
     Other,
 }
 
+// Stores boolean values for resources that are defined by a path
+// of strings. A GET operation to "/this/is/test" stores a true
+// value to a resource identified by ["this", "is", "test"].
 impl Storage {
     fn new() -> Storage {
         Storage {
@@ -30,7 +34,11 @@ impl Storage {
         }
     }
 
+    // Act on a request and write response to stream.
+    // TODO: maybe abstract out writing the response and remove
+    // direct dependency to TcpStream.
     fn act(&mut self, op: ActionResult, mut stream: TcpStream) {
+        let ok = "HTTP/1.1 200 OK\n";
         let reply = match op {
             Ok(action) => match action.op {
                 Get => {
@@ -45,15 +53,15 @@ impl Storage {
                         }
                         None => "0",
                     };
-                    "HTTP/1.1 200 OK\n\n".to_owned() + get_value
+                    ok.to_owned() + "\n" + get_value
                 }
                 Post => {
                     self.storage.insert(&action.path, Arc::new(true));
-                    "HTTP/1.1 200 OK\n".to_owned()
+                    ok.to_owned()
                 }
                 Delete => {
                     self.storage.clear(&action.path);
-                    "HTTP/1.1 200 OK\n".to_owned()
+                    ok.to_owned()
                 }
                 _ => "HTTP/1.1 400 Bad Request\n".to_owned(),
             },
@@ -69,6 +77,7 @@ async fn do_operation(op: String, storage: Arc<RwLock<Storage>>, stream: TcpStre
     (*storage.write().expect("can't get lock")).act(get_operation(&op), stream);
 }
 
+// Serve a single connection
 fn handle_client(
     mut stream: TcpStream,
     runner: ThreadPool,
@@ -91,8 +100,9 @@ fn handle_client(
     Ok(())
 }
 
-async fn listener(storage: Arc<RwLock<Storage>>) -> Result<(), Error> {
-    let listener = TcpListener::bind("127.0.0.1:80").map_err(Error::IoError)?;
+// Serve all incoming connections asynchronously
+async fn listener(storage: Arc<RwLock<Storage>>, port: u16) -> Result<(), Error> {
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).map_err(Error::IoError)?;
     let runner = ThreadPool::new().map_err(Error::IoError)?;
     for request in listener.incoming() {
         handle_client(
@@ -104,11 +114,37 @@ async fn listener(storage: Arc<RwLock<Storage>>) -> Result<(), Error> {
     Ok(())
 }
 
+// Get port to run on from the sole optional command line argument.
+// Failure to parse exits the process.
+fn get_port() -> u16 {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        match args[1].parse::<u64>() {
+            Ok(input) => {
+                if input > std::u16::MAX.into() {
+                    println!("incorrect port number: {}", input);
+                    std::process::exit(1);
+                }
+                input as u16
+            }
+            Err(_) => {
+                println!("incorrect port: {}", args[1]);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        8080
+    }
+}
+
+// Blocks and waits for incoming connections on the port given as a command
+// line argument, or the default port. GET, DELETE and POST operations are
+// supported on resources pointed to by paths. Stored values are booleans.
 fn main() {
     block_on(
-        listener(Arc::new(RwLock::new(Storage::new()))).map(|result| {
+        listener(Arc::new(RwLock::new(Storage::new())), get_port()).map(|result| {
             if let Err(e) = result {
-                println!("There was failure: {:?}", e);
+                println!("there was a failure: {:?}", e);
             }
         }),
     );
