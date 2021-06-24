@@ -93,7 +93,7 @@ fn handle_client(
 
 async fn listener(storage: Arc<RwLock<Storage>>) -> Result<(), Error> {
     let listener = TcpListener::bind("127.0.0.1:80").map_err(Error::IoError)?;
-    let runner = ThreadPool::new().expect("failed to create thread pool");
+    let runner = ThreadPool::new().map_err(Error::IoError)?;
     for request in listener.incoming() {
         handle_client(
             request.map_err(Error::IoError)?,
